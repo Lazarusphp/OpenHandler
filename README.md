@@ -1,34 +1,15 @@
 # OpenFileHandler
 
 *Version Information*
-Build version : v1.0.0
+Build version : v1.0.0-Dev
 Date Of Build : 
 
-## What is openFileHandler
-Open File Handler (OFH) is a standalone File and Directory Handling Library, OFH is designed to control and cominicate with the Server file structure, set permissions and manage files and directories.
+## What is OpenHandler 
+Open Handler (OH) is a standalone File and Directory Handling Library, OFH is designed to control and comminicate with the Server file structure, set permissions and manage files and directories.
 
-## The FileWriter Library.
-As Part of the newly designed Open File Handler library it will now incorperate the use of the lazarusphp FileWriter Library giving more control relating to files and folders.
 
 ## Open File handler Permissions manager
 Along side the FileWriter and File handler the Library will also feature a permissions manager. The Permissions manager will give the FileHandler library the ability to set permissions relating to the files and directories.
-
-## Open Filehandler Structure
-
-* Src
-    * Traits
-        Permissions.php
-        Structure.php
-    * CoreFiles
-        * FileWriterCore.php
-        * FileHandlerCore.php
-    * Interfaces
-        * FileWriterInterface.php
-        * FileHandlerInterface.php
-        * PermissionsInterface.php
-        * StructureInterface.php
-    * FileWriter.php
-    * FileHandler.php
 
 
 ## Usage
@@ -36,34 +17,70 @@ Along side the FileWriter and File handler the Library will also feature a permi
 *Installation*
 
 ```
-composer install lazarusphp/openfilehandler
+composer install lazarusphp/openhandler
 ```
 
-*Generating a root Directory (optional)*
+* Creating a new Instantiation.
 
 ```php
-FileHandler::generateRoot($pathname);
 
-// Using Object orientated based can also be done like so, this will also Handle Generate Root.
-$filehandler = new FileHandler($pathname);
+// Setting a path within the methods parameters will set the directory root.
+// Leaving it blank will default to the folder root.
+$filehandler = OpenHandler::create("/var/www/OpenHandler/Structure");
 ```
 *Creating a Directory*
 
 if a root is not generated but required, the root directory will have to be passed for the following methods.
 
+upon creating a Directory Helper methods such as hasDirectory and writable are also called these methods are required to make sure the correct permissions and structure access are put in place [click here](#Helpers) for more informtion on helpers.
+
 ```php
 // Make Sure path exists
-FileHandler::createDirectory("/Apps/Login");
+$filehandler->directory("/Apps/Login");
 ```
 
 *Listing Files and Folders*
 
+the code below can be used to list directories and the files, it is recommended to list them in a loop but can also be apploed to the var_dump or print_r methods for debugging purposes.
+
 ```php
-FileHandler::listAll("/Apps");
+$filehandler->list("/Apps");
 ```
 
 *Deleting Directory and files*
 
+OpenHandler has the ability to delete a directory or a file and can be done using the command below, in order to delete a single file simply replace the directory path with the full directory path of the chosen file.
+
+
 ```php
-FileHandler::deleteDirectory("/Apps");
+$filehandler->delete("/Apps");
 ```
+
+*Setting a prefix*
+Using a prefix gives the ability to group methods into a specific directory making and can be done like so.
+
+```php
+
+$filehandler->prefix("/App/Users",function($handler){
+    // Use handler at this point to call methods
+    $handler->directory("/Uploads");
+    if(isset($_POST["upload"]) &&$_SERVER["REQUEST_METHOD"] === "POST")
+    {
+        // Set the path and the Form Name value.
+        $handler->upload("Uploads","file");
+    }
+})
+
+```
+
+
+*Uploading FIles*
+
+```php
+$filehandler->upload("/uploads/Path","Files");
+```
+
+#### Helpers
+
+
+#### Restrictions.
