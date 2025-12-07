@@ -6,8 +6,12 @@ use App\System\Core\Functions;
 use Exception;
 use BadMethodCallException;
 use LazarusPhp\OpenHandler\ErrorHandler;
-use LazarusPhp\OpenHandler\Permissions;
+use LazarusPhp\OpenHandler\Interfaces\WriterInterface;
 use LazarusPhp\OpenHandler\Traits\Blacklist;
+use LazarusPhp\OpenHandler\Traits\Permissions;
+use LazarusPhp\OpenHandler\Traits\Structure;
+use LazarusPhp\OpenHandler\CoreFiles\Writers\FileWriter;
+use LazarusPhp\OpenHandler\CoreFiles\Writers\JsonWriter;
 use ReflectionClass;
 
 /**
@@ -19,17 +23,18 @@ use ReflectionClass;
 abstract class HandlerCore
 {
     use Blacklist;
-    protected static $directory = "";
-    protected static $prefix = "";
-    protected $permissions;
+    use Permissions;
+    use Structure;
+    
     protected array $restricted = [];
     private $method = __FUNCTION__;
     private $classname;
+    protected WriterInterface $writerInterface;
+    private $jsonWriter;
 
 
     public function __construct()
     {
-        $this->permissions = new Permissions();
     }
 
     public function classname()
@@ -60,114 +65,15 @@ abstract class HandlerCore
         trigger_error("Method : $name cannot be found or does not exist", E_USER_WARNING);
     }
 
-    // Helper methods 
 
-    /**
-     * @method hasDirectory
-     * @property string $path
-     * @return void
-     * Helper function to detect if a directory exists.
-     */
-    protected function hasDirectory(string $path)
-    {
-        return is_dir($path) ? true : false;
-    }
-
-    //    Detect if file exists return bool
-
-    /**
-     * @method hasFile
-     * Detect if is a file
-     * @property string $path;
-     * @return bool 
-     */
-    protected function hasFile(string $path)
-    {
-        if ($this->loadMethod(__FUNCTION__)) {
-            return (string) (is_file($path)) ? true : false;
-        }
-    }
-
-    /**
-     * Detect if file exists
-     * @property string $path;
-     * @return bool
-     */
-    protected function fileExists(string $path)
-    {
-        if ($this->loadMethod(__FUNCTION__)) {
-            return (file_exists($path)) ? true : false;
-        }
-    }
-
-    /**
-     * @method hasDirectory
-     * @property string $path
-     * @method $this->whitelist() does a check for whitelisted values set within handler.
-     * @return void
-     * Helper function to detect if a directory exists.
-     */
-    protected function filePath(string $directory)
-    {
-        if ($this->loadMethod(__FUNCTION__)) {
-            $root = self::$directory;
-            $prefix = self::$prefix ?? "";
-            $directory = $directory;
-
-            return (string) $root . $prefix . $directory;
-        }
-    }
-
-    /**
-     * @method validMode
-     * @property int $mode
-     * Detrermines if the correct mode for directory creation is valid
-     */
-    protected function validMode(int $mode)
-    {
-
-        if ($this->loadMethod(__FUNCTION__)) {
-            $modes = [0600, 0644, 0664, 0700, 0755, 0777];
-            if (in_array($mode, $modes)) {
-                return true;
-            } else {
-                return false;
-            }
-        }
-    }
-
-
-
-    /**
-     *  Detect if the Structure contains parent directorys
-     *  @property string $path
-     *  @return bool
-     */
-    protected function withDots($path)
-    {
-        if ($this->loadMethod(__FUNCTION__) === true) {
-            return ($path === "." || $path === "..") ? true : false;
-        }
-    }
+    
 
     /**
      * Detect if directory is writable
      * @property string $path
      * @return bool
      */
-    protected function writable(string $path)
-    {
-        if ($this->loadMethod(__FUNCTION__) === true) {
-            return is_writable($path) ? true : false;
-        }
-    }
-
-    protected  function readable(string $path)
-    {
-        if ($this->loadMethod(__FUNCTION__)) {
-            return is_readable($path) ? true : false;
-        }
-    }
+    
 
 
     // Generative Methods.
@@ -206,15 +112,15 @@ abstract class HandlerCore
         // $method = __FUNCTION__;
         // $this->setRestrict();
         if ($this->loadMethod(__FUNCTION__) === true) {
-            if (self::$prefix === "") {
-                self::$prefix = $path;
+            if ($this->prefix === "") {
+                $this->prefix = $path;
             }
             // Add MiddleWare Option here
 
             if (is_callable($handler)) {
                 $class = new Handler();
                 $handler($class, $path);
-                self::$prefix = "";
+                $this->prefix = "";
             }
             // Reset Prefix to start a new oneself
             return null;
@@ -225,8 +131,8 @@ abstract class HandlerCore
     {
         if ($this->loadMethod(__FUNCTION__)) {
             // Avoid double prefixing
-            if (!empty(self::$directory) && strpos($path, self::$directory) !== 0) {
-                $path = rtrim(self::$directory, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . ltrim($path, DIRECTORY_SEPARATOR);
+            if (!empty($this->directory) && strpos($path, $this->directory) !== 0) {
+                $path = rtrim($this->directory, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . ltrim($path, DIRECTORY_SEPARATOR);
             }
 
 
@@ -279,29 +185,31 @@ abstract class HandlerCore
 
 
 
-    protected function generateFile(string $filename, int|string|array $data, int $flags = 0)
+    protected function generateFile(string $filename, callable $handler,string $classname="")
     {
 
-        if ($this->loadMethod(__FUNCTION__)) {
-            $supportedFiles = ["php", "txt", "tpl", "class", "env", "json"];
-            $extension = pathinfo($filename)["extension"];
-            if (in_array($extension, $supportedFiles)) {
-                if (substr($filename, 0, 1) === DIRECTORY_SEPARATOR) {
-                    $filename = (string) $this->filePath($filename);
-                    if (!file_exists((string) $filename)) {
-                        $output = $data;
-                        if (file_put_contents((string) $filename, $output, $flags)) {
-                            return true;
-                        }
-                        // Ensure all code paths return a value
-                        return false;
-                    } else {
-                        return false;
-                    }
-                }
-            } else {
-                // Error Here
-                return false;
+        $filename = (string) $this->filePath($filename);
+        // This WIll be changes to the current Format string $filename,$handler,$classname
+
+        
+        if($this->loadMethod(__FUNCTION__)){
+        
+        if(empty($classname)){
+        }
+        // Detect Supported Data
+        $hassections = false;
+        $class = (empty($classname)) ? FileWriter::class : $classname;
+        
+        $this->writerInterface = new $class($filename);
+        $isClass = (class_exists($class)) ? true : false;
+
+        if(is_callable($handler) && $isClass)
+        {
+            $handler($this->writerInterface,$this);
+        }
+            if($this->writerInterface)
+            {
+                $this->writerInterface->save();
             }
         }
     }
@@ -311,19 +219,27 @@ abstract class HandlerCore
 
         if ($this->loadMethod(__FUNCTION__)) {
             $path = (string) $this->filePath($path);
-            if ($this->hasFile($path)) {
-                return unlink($path);
-            } elseif ($this->hasDirectory($path ?? '')) {
-                $items = $this->generateList($path, true);
-                foreach ($items['files'] as $file) {
-                    @unlink($file);
-                }
-                foreach (array_reverse($items['folders']) as $folder) {
-                    @rmdir($folder);
-                }
-                return @rmdir($path);
+
+            if(is_file($path))
+            {
+                unlink($path);
             }
-            return false;
+            else
+            {
+                if ($this->hasFile($path)) {
+                    return unlink($path);
+                } elseif ($this->hasDirectory($path ?? '')) {
+                    $items = $this->generateList($path, true);
+                    foreach ($items['files'] as $file) {
+                        @unlink($file);
+                    }
+                    foreach (array_reverse($items['folders']) as $folder) {
+                        @rmdir($folder);
+                    }
+                    return @rmdir($path);
+                }
+                return false;
+            }
         }
     }
 
