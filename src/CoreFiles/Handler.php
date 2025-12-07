@@ -21,7 +21,7 @@ class Handler extends HandlerCore implements HandlerInterface
      * Sets List of allowed  values for array.
      */
 
-    protected array $restricted = ["generateDirectory","generatePrefix","generateUpload","generateList"];
+    protected array $restricted = [];
 
     /**
      * @method __construct()
@@ -49,7 +49,7 @@ class Handler extends HandlerCore implements HandlerInterface
     {
             if ($this->hasDirectory($directory) && $this->writable($directory)) {
                 // Create the directory
-                self::$directory = $directory;
+                $this->directory = $directory;
             } else {
                 // Trigger Error
                 trigger_error("$directory cannot be found or is not writable");
@@ -66,7 +66,9 @@ class Handler extends HandlerCore implements HandlerInterface
     public function directory(string $path, int $mode = 0755, bool $recursive = true)
     {
             return $this->generateDirectory($path, $mode, $recursive);     
-     }
+    }
+
+     
 
     /**
      * Delete a file or directory at the specified path.
@@ -86,13 +88,9 @@ class Handler extends HandlerCore implements HandlerInterface
      * @return bool|int
      */
 
-    public function file(string $path,array | int | string $data,$flags=0)
+    public function file(string $filename, callable $handler,$classname="")
     {
-        // $path = $this->filePath($path);
-
-        //    return $this->generateFile($path,$data);
-        return $this->hasDirectory($path);
-        
+     return $this->generateFile($filename,$handler,$classname);   
     }
     
 
@@ -106,14 +104,14 @@ class Handler extends HandlerCore implements HandlerInterface
 
     public function list(string $path,$recursive=true,$files=true)
     {
-        $path = self::$prefix !== "" ? $this->filePath($path) : $path;
+        $path = $this->prefix !== "" ? $this->filePath($path) : $path;
         return $this->generateList($path,$recursive);
     }
 
 
-    public function prefix(string $path, callable $handler, array $middleware = [])
+    public function prefix(string $path, callable $handler)
     {
-        return $this->generatePrefix($path, $handler, $middleware=[]);
+        return $this->generatePrefix($path, $handler);
     }
 
 
