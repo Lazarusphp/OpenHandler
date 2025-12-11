@@ -229,7 +229,7 @@ class FileWriter extends FileWriterCore  implements WriterInterface
 
 
       if ($extension === "txt") {
-         //$this->toTxt($this->filename);
+         $this->toTxt($this->filename);
       }
 
       if ($extension === "ini") {

@@ -11,7 +11,6 @@ use LazarusPhp\OpenHandler\Traits\Blacklist;
 use LazarusPhp\OpenHandler\Traits\Permissions;
 use LazarusPhp\OpenHandler\Traits\Structure;
 use LazarusPhp\OpenHandler\CoreFiles\Writers\FileWriter;
-use LazarusPhp\OpenHandler\CoreFiles\Writers\JsonWriter;
 use ReflectionClass;
 
 /**
@@ -31,6 +30,7 @@ abstract class HandlerCore
     private $classname;
     protected WriterInterface $writerInterface;
     private $jsonWriter;
+    
 
 
     public function __construct()
@@ -182,13 +182,27 @@ abstract class HandlerCore
     }
 
 
+    private function detectSections(bool $sections)
+    {
+        $validSections = [true,false];
+        return (in_array($sections,$validSections)) ? true : false ;
+       
+    }
 
 
 
-    protected function generateFile(string $filename, callable $handler,string $classname="")
+    protected function generateFile(string $filename, callable $handler,bool $sections=false)
     {
 
         $filename = (string) $this->filePath($filename);
+        // Make sure Sections only allows true or false
+
+
+        if($this->detectSections($sections) === false)
+        {
+            trigger_error("Error Occurred : Sections Must be true or false");
+        }
+
         // This WIll be changes to the current Format string $filename,$handler,$classname
 
         
@@ -197,13 +211,11 @@ abstract class HandlerCore
         if(empty($classname)){
         }
         // Detect Supported Data
-        $hassections = false;
-        $class = (empty($classname)) ? FileWriter::class : $classname;
-        
-        $this->writerInterface = new $class($filename);
+        $class = FileWriter::class;
+        $this->writerInterface = new $class($filename,$sections);
         $isClass = (class_exists($class)) ? true : false;
 
-        if(is_callable($handler) && $isClass)
+        if(is_callable($handler) && $isClass === true)
         {
             $handler($this->writerInterface,$this);
         }

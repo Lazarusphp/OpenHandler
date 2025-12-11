@@ -14,7 +14,6 @@ class FileWriterCore
 
     use Structure;
     use Permissions;
-    use jsonControl;
     protected bool $hasSections = false;
     protected string $filename = "";
     protected bool $serialize = false;
@@ -84,7 +83,7 @@ class FileWriterCore
 
     private function preCreateFile($filename)
     {
-        $supported = ["ini","txt","env"];
+        $supported = ["ini","txt","env","json"];
         $extention = $this->getExtension($filename);
 
         if(!in_array($extention,$supported))
@@ -99,7 +98,7 @@ class FileWriterCore
         }
     }
 
-    private function writeJson($filename)
+    protected function writeJson($filename)
     {
         $encoded = json_encode($this->writeData,$this->jsonFlags);
         return file_put_contents($filename,$encoded);
@@ -115,21 +114,27 @@ class FileWriterCore
     protected function toTxt(string $filename):void
     {
         // create new Emoty $output
-        $output = "";
+
+            $output = "";
             foreach($this->writeData as $section => $k)
             {
+
                 if($this->hasSections === true)
                 {
-                
+                    if(!is_array($k))
+                    {
+                        continue;
+                    }
                     // Loop here 
                     foreach($k as $key => $value)
                     {
-                          $output .= "[$section] : $key = $value" . PHP_EOL;   
+                          $output .= "[$section][$key]:$value" . PHP_EOL;   
+                        
                     }
                 }
                 else
                 {
-                  $output .= "[$section] = $value" . PHP_EOL;  
+                  $output .= "[$section]:$k" . PHP_EOL;  
                 }
             }
             $this->writeFile($filename,$output);
@@ -208,7 +213,7 @@ class FileWriterCore
 
         if(!in_array($extention,["json"]))
         {
-            return $this->parseFile($filename);
+            return $this->parseJson($filename);
         }
 
         if(!in_array($extention,["txt"]))
