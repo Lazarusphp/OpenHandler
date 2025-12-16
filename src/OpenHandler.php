@@ -3,19 +3,19 @@ namespace LazarusPhp\OpenHandler;
 
 use LazarusPhp\OpenFileHandler\CoreFiles\HandlerCore;
 use LazarusPhp\OpenFileHandler\Interfaces\PermissionsInterface;
-use LazarusPhp\OpenHandler\CoreFiles\Handler;
+use LazarusPhp\OpenHandler\Handler;
 use LazarusPhp\OpenHandler\Interfaces\HandlerInterface;
+use LazarusPhp\OpenHandler\CoreFiles\Traits\Structure;
 use ReflectionClass;
 
 class OpenHandler
 {
+    use Structure;
+
     private static HandlerInterface $handlerInterface;
 
 
-    private static  function reflection($classname)
-    {
-        return new ReflectionClass($classname);
-    }
+    
 
     public static function create(string $directory,array $handler =[Handler::class])
     {
@@ -30,14 +30,14 @@ class OpenHandler
             return false;
         }
 
-        
-
         $reflection = self::reflection($handler);
         if (class_exists($handler)) {
             if($reflection->isInstantiable()){
                 self::$handlerInterface = new $handler($directory);
-                self::$handlerInterface->setDirectory($directory);
+                
+                if(self::$handlerInterface->setDirectory($directory)){
                 return self::$handlerInterface;
+                }
             }
             else
             {
