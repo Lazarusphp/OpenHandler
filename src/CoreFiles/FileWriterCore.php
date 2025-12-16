@@ -4,28 +4,44 @@ namespace LazarusPhp\OpenHandler\CoreFiles;
 use App\System\Core\Functions;
 use Exception;
 use LazarusPhp\OpenHandler\CoreFiles\Traits\EnvWriter;
+use LazarusPhp\OpenHandler\CoreFiles\Traits\FileParser;
 use LazarusPhp\OpenHandler\CoreFiles\Traits\jsonControl;
 use LazarusPhp\OpenHandler\CoreFiles\Writers\JsonWriter;
-use LazarusPhp\OpenHandler\Traits\Permissions;
-use LazarusPhp\OpenHandler\Traits\Structure;
+use LazarusPhp\OpenHandler\CoreFiles\Traits\Permissions;
+use LazarusPhp\OpenHandler\CoreFiles\Traits\Structure;
 
 class FileWriterCore
 {
 
     use Structure;
     use Permissions;
-    protected bool $hasSections = false;
+    use FileParser;
+    // protected bool $hasSections = false;
     protected string $filename = "";
     protected bool $serialize = false;
-    protected array $readData = [];
-    protected array $writeData = [];
+
+    // Data From FIles.
+
+    protected array $data = [];
+    protected array $hasSections = [];
+    protected array $rewritable = [];
+
+
     protected array $filePath = [];
-    protected bool $rewriteSection = false;
-    protected bool $rewriteFile = false;
 
     public function __construct($filename)
     {
-        $this->preCreateFile($filename);
+        
+        $this->bindFiles($filename);
+        if($this->openFile($filename) === true){
+            
+            $this->loadParser($filename);
+
+        }
+        else
+        {
+            echo "filename could not be found";
+        }
     }
 
     
@@ -37,9 +53,16 @@ class FileWriterCore
      * @description Open file is an additional file used to open the file
      * @return void
      */
-    protected function openFile($filename):void
+    protected function openFile($filename):bool
     {
-        $this->filename = (string) $this->filePath($filename);
+        if($this->hasFile($filename)){
+            $this->filename = (string) $this->filePath($filename);
+            return true;
+        }
+        else
+        {
+            return false;
+        }
     }
 
 
@@ -59,189 +82,6 @@ class FileWriterCore
             }
     }
 
-    
-
-    // // Export to files.
-
-    // // Env Createor
-
-    // /**
-    //  * @method toEnv()
-    //  * @param string $filenane
-    //  * @return void
-    //  */
-    protected function WriteEnv()
-    {
-        $output = "";
-        foreach($this->writeData as $section => $value)
-        {
-            $output .= "$section='".$value."'" . PHP_EOL;
-        }
-        return $this->writeFile($this->filename,$output);
-    }
-
-
-    private function preCreateFile($filename)
-    {
-        $supported = ["ini","txt","env","json"];
-        $extention = $this->getExtension($filename);
-
-        if(!in_array($extention,$supported))
-        {
-            trigger_error("Unsupported FIle Type");
-            exit();
-        }
-
-        if(!$this->hasFile($filename))
-        {
-            $this->writeFile($filename,"");
-        }
-    }
-
-    protected function writeJson($filename)
-    {
-        $encoded = json_encode($this->writeData,$this->jsonFlags);
-        return file_put_contents($filename,$encoded);
-    }
-
-
-
-    // /**
-    //  * @method toTxt()
-    //  * @param string $filename
-    //  * @return void
-    //  */
-    protected function toTxt(string $filename):void
-    {
-        // create new Emoty $output
-
-            $output = "";
-            foreach($this->writeData as $section => $k)
-            {
-
-                if($this->hasSections === true)
-                {
-                    if(!is_array($k))
-                    {
-                        continue;
-                    }
-                    // Loop here 
-                    foreach($k as $key => $value)
-                    {
-                          $output .= "[$section][$key]:$value" . PHP_EOL;   
-                        
-                    }
-                }
-                else
-                {
-                  $output .= "[$section]:$k" . PHP_EOL;  
-                }
-            }
-            $this->writeFile($filename,$output);
-    }
-    
-
-    // Validate type
-
-    private function validateType($value)
-    {
-        return (is_numeric($value) ? $value : '"' . addslashes($value) . '"');
-    }
-
-
-    /**
-     * Ini Generator
-     * @method toIni()
-     * @param string $filename;
-     * @return void;
-     */
-    
-
-
-    // Write Files
-
-    // To Ini/Env
-
-    protected function toIni(string $filename):void
-    {
-        $output = "";
-
-    foreach($this->writeData as $section => $k)
-    {
-        
-        if($this->hasSections === true)
-        {
-            $output .= "[$section]" . PHP_EOL;
-            foreach($k as $key => $value)
-            {
-                $output .=  "$key =". $this->validateType($value)   . PHP_EOL; 
-            }
-        }
-        else
-        {
-            
-            $output .=  "$section =" . $k . PHP_EOL; 
-            
-        }
-    }
-
-        $this->writeFile($filename,$output);
-    }
-
-    // to text
-
-    //to json
-
-
-    // Read Files
-
-
-    protected function loadFile($filename)
-    {
-        if(!$this->hasFile($filename))
-        {
-            trigger_error("File $filename cannot be found");
-            // return false;
-        }
-
-        $extention = $this->getExtension($filename);
-
-        if(in_array($extention,["ini","env"]))
-        {
-            return $this->parseFile($filename);
-        }
-
-        if(!in_array($extention,["json"]))
-        {
-            return $this->parseJson($filename);
-        }
-
-        if(!in_array($extention,["txt"]))
-        {
-            return $this->readFile($filename);
-        }
-
-        
-    }
-
-
-    private function parseFile($filename)
-    {
-        $section = ($this->hasSections === true) ? true : false;
-        return parse_ini_file($filename,$section);
-    }
-
-
-    private function readFile($filename)
-    {
-        return file_get_contents($filename,true);
-    }
-
-    private function parseJson($filename)
-    {
-        $filename = file_get_contents($filename);
-        return json_decode($filename,true);
-    }
 
 
 }
