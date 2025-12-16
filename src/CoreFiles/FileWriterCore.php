@@ -3,19 +3,18 @@ namespace LazarusPhp\OpenHandler\CoreFiles;
 
 use App\System\Core\Functions;
 use Exception;
-use LazarusPhp\OpenHandler\CoreFiles\Traits\EnvWriter;
 use LazarusPhp\OpenHandler\CoreFiles\Traits\FileParser;
-use LazarusPhp\OpenHandler\CoreFiles\Traits\jsonControl;
-use LazarusPhp\OpenHandler\CoreFiles\Writers\JsonWriter;
 use LazarusPhp\OpenHandler\CoreFiles\Traits\Permissions;
 use LazarusPhp\OpenHandler\CoreFiles\Traits\Structure;
+use LazarusPhp\OpenHandler\CoreFiles\Traits\Blacklist;
 
 class FileWriterCore
 {
-
+g
     use Structure;
-    use Permissions;
     use FileParser;
+    use Blacklist;
+    use Permissions;
     // protected bool $hasSections = false;
     protected string $filename = "";
     protected bool $serialize = false;
