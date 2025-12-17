@@ -11,12 +11,10 @@ trait FileParser
     {
         $extension = $this->getExtension($filename);
 
-        if(in_array($extension,["txt","php","js"]))
-        {
+        if (in_array($extension, ["php", "js"])) {
             trigger_error("Invalid File Format");
             exit();
-        }
-        else{
+        } else {
             if (!$this->hasFile($filename)) {
                 if ($extension === "json") {
                     $data = (string)  "{}";
@@ -54,9 +52,6 @@ trait FileParser
         $extension  = $this->getExtension($filename);
         // Bind the FIles if they do not exist
 
-        
-
-
         // Cycle Extensions
 
 
@@ -64,6 +59,22 @@ trait FileParser
         if ($extension === "ini") {
             $sections = $this->hasSections[$filename];
             $data =  (array) parse_ini_file($filename, $sections);
+        }
+
+        if ($extension === "txt") {
+            if ($extension === "txt") {
+                $lines = file($filename, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+                $data = [];
+
+                foreach ($lines as $line) {
+                    if (!str_contains($line, "::")) {
+                        continue;
+                    }
+
+                    [$key, $value] = explode("::", $line, 2);
+                    $data[trim($key)] = trim($value);
+                }
+            }
         }
 
         // CHeck For env
@@ -79,25 +90,29 @@ trait FileParser
         }
         // End Cycle of Extentons
 
-        
+
         // Run parseFile
-        
+
         $this->parseData($data);
     }
 
     public function writeData(string $filename, $extension)
     {
         if ($extension === "json") {
-            $this->writeJson($this->filename);
+            $this->writeJson($filename);
+        }
+
+        if ($extension === "txt") {
+            $this->writeTxt($filename);
         }
 
         if ($extension === "env") {
-            $this->writeEnv($this->filename);
+            $this->writeEnv($filename);
         }
 
 
         if ($extension === "ini") {
-            $this->writeIni($this->filename);
+            $this->writeIni($filename);
         }
     }
 
@@ -137,18 +152,27 @@ trait FileParser
 
     private function writeJson(string $filename)
     {
-
-        
-        Functions::dd($this->data);
-
-        $encode= (string) json_encode($this->data, JSON_PRETTY_PRINT);
+        $encode = (string) json_encode($this->data, JSON_PRETTY_PRINT, JSON_UNESCAPED_SLASHES);
         return $this->writeFile($filename, $encode);
     }
 
+    private function writeTxt(string $filename)
+    {
+        $output = "";
+        // Write Ini File Here.
+        foreach ($this->data as $sec => $k) {
+
+            if (!is_string($sec)) {
+                continue;
+            }
+
+            $output .= "$sec::$k " . PHP_EOL;
+        }
+        $this->writeFile($filename, $output);
+    }
 
     private function writeIni(string $filename)
     {
-
         $output = "";
         // Write Ini File Here.
         foreach ($this->data as $sec => $k) {

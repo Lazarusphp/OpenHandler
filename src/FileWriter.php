@@ -189,6 +189,7 @@ class FileWriter extends FileWriterCore
       // Validate OverWrite Rules
       $extension = $this->getExtension($this->filename);
       $this->writeData($this->filename,$extension);
+      
 
    //    // CLear all and reset to default
       

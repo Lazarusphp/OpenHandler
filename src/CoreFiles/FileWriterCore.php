@@ -10,7 +10,6 @@ use LazarusPhp\OpenHandler\CoreFiles\Traits\Blacklist;
 
 class FileWriterCore
 {
-g
     use Structure;
     use FileParser;
     use Blacklist;
