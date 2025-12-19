@@ -23,6 +23,7 @@ class FileWriterCore
     protected array $data = [];
     protected array $hasSections = [];
     protected array $rewritable = [];
+    protected array $options = [];
 
 
     protected array $filePath = [];

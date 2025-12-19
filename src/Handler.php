@@ -150,9 +150,22 @@ class Handler implements HandlerInterface
      * @return bool|int
      */
 
-    public function file(string $filename, callable $handler,bool $sections=false)
+    // Note Change Sections to array and leave empty rename to $options
+    public function file(string $filename, callable $handler,array $options=[])
     {
-        
+      
+    foreach($options as $key => $value){
+        if(!in_array($key,["sections","rewrite","lockable"]))
+        {
+            return false;
+        }
+    }
+   
+    //   if(count($options === 0))
+    //   {
+    //       $options = ["sections"=>false,"rewrite"=>false,"lockable"=>false];
+    //   }
+
         $filename = (string) $this->filePath($filename);
         // Make sure Sections only allows true or false
 
@@ -166,7 +179,7 @@ class Handler implements HandlerInterface
         // Detect Supported Data
         $class = FileWriter::class;
         $isClass = (class_exists($class)) ? true : false;
-        $class = new $class($filename,$sections);
+        $class = new $class($filename,$options);
 
         if(is_callable($handler) && $isClass === true)
         {

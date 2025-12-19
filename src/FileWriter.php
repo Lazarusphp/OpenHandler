@@ -11,16 +11,34 @@ use Exception;
 class FileWriter extends FileWriterCore
 {
 
-   public function __construct(string $filename,$sections)
+   // Note
+   // Rename $sections to $options change to array $options
+   public function __construct(string $filename,array $options=[])
    {
+
    
+      foreach($options as $key => $value) {
+         if(!in_array($key, ["sections","rewrite","lockable"]))
+         {
+            return false;
+         }
+      }
+
+      if(isset($this->options[$filename]["sections"]))
+      {
+         $this->options[$filename]["sections"] = $options["sections"];
+      }
+
+      if(isset($this->options[$filename]["rewrite"]))
+      {
+         $this->options[$filename]["rewrite"] = $options["rewrite"];
+      }
+      
+      // Pass $options to here as array.
+
       
       // Validate if sections are used
-      // $this->sections[$filenane] = true:false;
-      if(is_bool($sections))
-      {
-         $this->GenerateSections($filename,$sections);
-      }
+
       // $this->hasSections[$filename] = (is_bool($rewrite) && $rewrite === true && array_key_exists($filename,$this->rewritable)) ? true : false;
       
       // set if Rewritable,
