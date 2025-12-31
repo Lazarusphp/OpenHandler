@@ -1,0 +1,18 @@
+{
+    "name": "lazarusphp/openhandler",
+    "description": "FileManager and Data Writer.",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Lazarusphp\\Openhandler\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "itzzpadre"
+        }
+    ],
+    "minimum-stability": "dev",
+    "require": {}
+}
