@@ -2,10 +2,12 @@
 
 namespace LazarusPhp\OpenHandler;
 
+use App\System\Core\Functions;
 use Exception;
 use LazarusPhp\OpenHandler\Interfaces\HandlerInterface;
 use LazarusPhp\OpenHandler\Interfaces\ImageInterface;
 use LazarusPhp\OpenHandler\CoreFiles\Traits\Blacklist;
+use LazarusPhp\OpenHandler\CoreFiles\Traits\FileParser;
 use LazarusPhp\OpenHandler\CoreFiles\Traits\Permissions;
 use LazarusPhp\OpenHandler\CoreFiles\Traits\Structure;
 use LazarusPhp\OpenHandler\FileWriter;
@@ -17,10 +19,11 @@ class Handler implements HandlerInterface
     use Blacklist;
     use Permissions;
     use Structure;
-    
+    use FileParser;
+
     private $method = __FUNCTION__;
     private $classname;
-    
+    private $fileWriter;
     /**
      * @propertyy array $allowedHelpers
      * Lists allowed Helpers
@@ -39,13 +42,15 @@ class Handler implements HandlerInterface
      * @param $directory
      * 
      * */
-    public function __construct(string $directory="")
+    public function __construct(string $directory = "")
     {
         // Empty Constructor 
-        if($directory !== "")
-        {
+        if ($directory !== "") {
             $this->setDirectory($directory);
         }
+
+        $this->fileWriter = FileWriter::class;
+
     }
 
 
@@ -55,27 +60,23 @@ class Handler implements HandlerInterface
      * can be used seperatly to override the directory set in constructor.
      * sets @property self::$directory  if directory exists.
      */
-    public function setDirectory(string $directory="./")
+    public function setDirectory(string $directory = "./")
     {
-            if ($this->hasDirectory($directory)) {
-                // check the Directory is Writable
-                if($this->writable($directory))
-                {
-                    // Set the variable and Create the Directory
-                    $this->directory = $directory;
-                    return true;
-                }
-                else
-                {
-                    trigger_error("Directory is Not Writable");
-                    return false;
-                }
-             
+        if ($this->hasDirectory($directory)) {
+            // check the Directory is Writable
+            if ($this->writable($directory)) {
+                // Set the variable and Create the Directory
+                $this->directory = $directory;
+                return true;
             } else {
-                // Trigger Error
-                trigger_error("$directory cannot be found");
+                trigger_error("Directory is Not Writable");
                 return false;
             }
+        } else {
+            // Trigger Error
+            trigger_error("$directory cannot be found");
+            return false;
+        }
     }
 
     /**
@@ -104,43 +105,54 @@ class Handler implements HandlerInterface
             } else {
                 echo "Mode invalid";
             }
-        }   
+        }
     }
 
-     
+
 
     /**
      * Delete a file or directory at the specified path.
      * @param string $path
      * @return bool
      */
-    
+
     public function delete(string $path)
     {
         if ($this->loadMethod(__FUNCTION__)) {
             $path = (string) $this->filePath($path);
 
-            if(is_file($path))
-            {
-                unlink($path);
-            }
-            else
-            {
-                if ($this->hasFile($path)) {
-                    return unlink($path);
-                } elseif ($this->hasDirectory($path ?? '')) {
-                    $items = $this->list($path, true);
-                    foreach ($items['files'] as $file) {
-                        @unlink($file);
+                if (is_file($path) && $this->hasFile($path) === true) {
+                    unlink($path);
+                } else {
+                    if ($this->hasFile($path)) {
+                        return unlink($path);
+                    } elseif ($this->hasDirectory($path ?? '')) {
+                        $items = $this->list($path, true);
+                        foreach ($items['files'] as $file) {
+                            unlink($file);
+                        }
+                        foreach (array_reverse($items['folders']) as $folder) {
+                            rmdir($folder);
+                        }
+                        
+                        // Unset Data Properties
+                        if(class_exists($this->fileWriter))
+                        {
+                            $class = new $this->fileWriter($path,[],1);
+                            $class->deleteData();
+                        }
+
+                        return rmdir($path);
                     }
-                    foreach (array_reverse($items['folders']) as $folder) {
-                        @rmdir($folder);
-                    }
-                    return @rmdir($path);
+
+                    return false;
                 }
-                return false;
+
             }
-        }
+
+            // Unset Data Paths
+
+   
     }
 
     /**
@@ -151,47 +163,34 @@ class Handler implements HandlerInterface
      */
 
     // Note Change Sections to array and leave empty rename to $options
-    public function file(string $filename, callable $handler,array $options=[])
+    public function file(string $filename, callable $handler, ?array $flags=[])
     {
-      
-    foreach($options as $key => $value){
-        if(!in_array($key,["sections","rewrite","lockable"]))
-        {
-            return false;
-        }
-    }
-   
-    //   if(count($options === 0))
-    //   {
-    //       $options = ["sections"=>false,"rewrite"=>false,"lockable"=>false];
-    //   }
+    
+        $options = count($flags) ? $this->supportedFlags($flags) : $flags;
 
         $filename = (string) $this->filePath($filename);
         // Make sure Sections only allows true or false
 
         // This WIll be changes to the current Format string $filename,$handler,$classname
 
-        
-        if($this->loadMethod(__FUNCTION__)){
-        
-        if(empty($classname)){
-        }
-        // Detect Supported Data
-        $class = FileWriter::class;
-        $isClass = (class_exists($class)) ? true : false;
-        $class = new $class($filename,$options);
 
-        if(is_callable($handler) && $isClass === true)
-        {
-            $handler($class,$this);
-        }
-            if($class)
-            {
+        if ($this->loadMethod(__FUNCTION__)) {
+
+            if (empty($classname)) {
+            }
+            // Detect Supported Data
+            $isClass = (class_exists($this->fileWriter)) ? true : false;
+            $class = new $this->fileWriter($filename, $options);
+
+            if (is_callable($handler) && $isClass === true) {
+                $handler($class, $this);
+            }
+            if ($class) {
                 $class->save();
             }
         }
     }
-    
+
 
     /**
      * List all directories and files
@@ -199,12 +198,12 @@ class Handler implements HandlerInterface
      * @property bool $recursive
      * @return array
      */
-     
 
-    public function list(string $path,$recursive=true,$files=true)
+
+    public function list(string $path, $recursive = true, $files = true)
     {
         $path = $this->prefix !== "" ? $this->filePath($path) : $path;
-                if ($this->loadMethod(__FUNCTION__)) {
+        if ($this->loadMethod(__FUNCTION__)) {
             // Avoid double prefixing
             if (!empty($this->directory) && strpos($path, $this->directory) !== 0) {
                 $path = rtrim($this->directory, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . ltrim($path, DIRECTORY_SEPARATOR);
@@ -259,7 +258,7 @@ class Handler implements HandlerInterface
 
     public function prefix(string $path, callable $handler)
     {
-         // $method = __FUNCTION__;
+        // $method = __FUNCTION__;
         // $this->setRestrict();
         if ($this->loadMethod(__FUNCTION__) === true) {
             if ($this->prefix === "") {
@@ -284,9 +283,9 @@ class Handler implements HandlerInterface
      * @param callable $image
      * @return @method $this->imageHandler()->upload($path,$image);
      */
-    public function upload(string $path,string $name)
+    public function upload(string $path, string $name)
     {
-                if ($this->loadMethod(__FUNCTION__)) {
+        if ($this->loadMethod(__FUNCTION__)) {
             $path = (string) $this->filePath($path);
 
             if ($this->hasDirectory($path)) {

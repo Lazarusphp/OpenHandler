@@ -24,22 +24,30 @@ class FileWriterCore
     protected array $hasSections = [];
     protected array $rewritable = [];
     protected array $options = [];
+   
+    // Mode options 0 = create/Write 1 = delete;
+    protected int $mode = 0;
 
 
     protected array $filePath = [];
 
-    public function __construct($filename)
-    {
-        
-        $this->bindFiles($filename);
-        if($this->openFile($filename) === true){
-            
-            $this->loadParser($filename);
 
-        }
-        else
-        {
-            echo "filename could not be found";
+    public function __construct(string $filename,int $mode=0)
+    {
+
+        $this->mode = $mode;
+        if($this->mode === 0){
+            $this->bindFiles($filename);
+            // Open the FIle;
+            if($this->openFile($filename) === true){
+                
+                $this->loadParser($filename);
+
+            }
+            else
+            {
+                echo "filename could not be found";
+            }
         }
     }
 
