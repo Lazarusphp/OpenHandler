@@ -281,7 +281,6 @@ class Handler implements HandlerInterface
      * @method upload
      * @param string $path
      * @param callable $image
-     * @return @method $this->imageHandler()->upload($path,$image);
      */
     public function upload(string $path, string $name)
     {

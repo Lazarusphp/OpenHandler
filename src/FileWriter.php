@@ -106,7 +106,7 @@ class FileWriter extends FileWriterCore
     * @return @method $this->writeFile($sections,$key,$value)
     * @description : Used to Write to a file
     */
-   public function write(string $filename, string|int|array $content, int $optional = 0)
+   private function write(string $filename, string|int|array $content, int $optional = 0)
    {
       return $this->writeFile($filename, $content, $optional);
    }
