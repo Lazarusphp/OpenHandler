@@ -7,6 +7,39 @@ use App\System\Core\Functions;
 trait FileParser
 {
 
+
+    protected function supportedFlags(array $flags)
+    {
+        $flagOptions = [];
+        $supported = (array) ["no-delete","rewrite","sections"];
+        if(count($flags) > 0 )
+        {
+            
+            foreach($flags as $key)
+            {
+                // Convert to lower string
+                if(!is_string($key))
+                {
+                    continue;
+                } 
+
+                $key = strtolower($key);
+                
+                // echo "$key : ";
+                // // Echo Out value
+                if(isset($key) && in_array($key,$supported))
+                {
+                    $flagOptions[$key] = true;
+                }
+                else
+                {
+                    $flagOptions[$key] = false;
+                }
+            }
+            return $flagOptions;
+        }
+    }
+
     protected function bindFiles(string $filename)
     {
         $extension = $this->getExtension($filename);
@@ -35,11 +68,23 @@ trait FileParser
         }
     }
 
-    protected function hasSections()
+
+    protected function getOptions(string $key)
     {
-        if ($this->hasSections[$this->filename] === true) {
-            return true;
-        } else {
+        if(array_key_exists($key,$this->options[$this->filename])){
+            return $this->options[$this->filename][$key];
+        }
+    }
+
+    // Must Return true or false
+    protected function hasOptions($key):bool
+    {
+        if(array_key_exists($key,$this->options[$this->filename]))
+        {
+            return ($this->options[$this->filename][$key] === true) ? true : false;
+        }
+        else
+        {
             return false;
         }
     }

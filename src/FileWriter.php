@@ -13,40 +13,22 @@ class FileWriter extends FileWriterCore
 
    // Note
    // Rename $sections to $options change to array $options
-   public function __construct(string $filename,array $options=[])
+   public function __construct(string $filename, array $options = [], int $mode = 0)
    {
 
-   
-      foreach($options as $key => $value) {
-         if(!in_array($key, ["sections","rewrite","lockable"]))
-         {
-            return false;
-         }
+      // Generate new array for key
+      if (!in_array($filename, $this->options)) {
+         $this->options[$filename] = [];
       }
 
-      if(isset($this->options[$filename]["sections"]))
-      {
-         $this->options[$filename]["sections"] = $options["sections"];
+      // Loop $options and set values;
+      foreach ($options as $key => $value) {
+         // Set/ Update Value.
+         $this->options[$filename][$key] = $value;
       }
 
-      if(isset($this->options[$filename]["rewrite"]))
-      {
-         $this->options[$filename]["rewrite"] = $options["rewrite"];
-      }
-      
-      // Pass $options to here as array.
-
-      
-      // Validate if sections are used
-
-      // $this->hasSections[$filename] = (is_bool($rewrite) && $rewrite === true && array_key_exists($filename,$this->rewritable)) ? true : false;
-      
-      // set if Rewritable,
-      // $this->rewriable[$filename] = true:false;
-      
       // Launch FileWriteCore COnstructor
-      parent::__construct($filename);
-
+      parent::__construct($filename, $mode);
    }
 
    /**
@@ -60,35 +42,28 @@ class FileWriter extends FileWriterCore
     */
    public function set(string $section, string|int $key, string|int $value = "")
    {
+      if ($this->hasOptions("sections") === true) {
 
-      if($this->hasSections[$this->filename] === true){
-         
-         if(empty($value))
-         {
+         if (empty($value)) {
             trigger_error("A Third Parameter mus be added when using sections");
             exit();
          }
 
-         if(!empty($value)){
-            if(!isset($this->data[$section][$key])){
+         if (!empty($value)) {
+            if (!isset($this->data[$section][$key]) || $this->options[$this->filename]["rewrite"] === true) {
                $this->data[$section][$key] = $value;
             }
          }
-      }
-      else
-      {
-         if(empty($value)){
-            if(!array_key_exists($section,$this->data)){
+      } else {
+         if (empty($value)) {
+            if (!array_key_exists($section, $this->data) || $this->hasOptions("rewrite") === true) {
                $this->data[$section] = $key;
             }
-         }
-         else
-         {
+         } else {
             trigger_error("Failed to Write value a third parameter cannot be used without sections");
             exit();
          }
       }
-      
    }
 
 
@@ -103,36 +78,25 @@ class FileWriter extends FileWriterCore
     */
 
 
-   public function get(string $section="", string|int $key = "")
+   public function get(string $section = "", string|int $key = "")
    {
-      if(!empty($section)){
-         if(array_key_exists($section,$this->data)){
-            if(!empty($key) && $this->hasSections === true)
-            {
-               if(array_key_exists($key,$this->data[$section]))
-               {
+      if (!empty($section)) {
+         if (array_key_exists($section, $this->data)) {
+            if (!empty($key) && $this->hasOptions("sections") === true) {
+               if (array_key_exists($key, $this->data[$section])) {
                   return $this->data[$section][$key];
-               }
-               else
-               {
+               } else {
                   echo "Key Value cannot be found";
                }
+            } else {
+               return $this->data[$section];
             }
-            else
-            {
-                  return $this->data[$section];
-            }
-         }
-         else
-         {
+         } else {
             echo "Section cannot be found";
          }
-   }
-   else
-      {
+      } else {
          return (array) $this->data;
       }
-
    }
    /**
     * @method write()
@@ -157,43 +121,33 @@ class FileWriter extends FileWriterCore
     * @optional false
     */
 
-   public function remove(string $section="", string|int $key = "")
+   public function remove(string $section = "", string|int $key = "")
    {
-      // check for empty Sections and remove all values.
-      if(empty($section) || $section === (string) "*")
-      {
-         // Refresh Data Array to remove all Values before save
-          $this->data = [];
-      }
-      else{
-         if($this->hasSections() === true)
-         {
-            if(!empty($key))
-            {
-               if(array_key_exists($section,$this->data)){
-                  if(array_key_exists($key,$this->data[$section])){
-                     unset($this->data[$section][$key]);
-                  }
-                  else
-                  {
-                     echo "Key Doesnt Exist";
+      if ($this->hasOptions("no-delete") === false) {
+         // check for empty Sections and remove all values.
+         if (empty($section) || $section === (string) "*") {
+            // Refresh Data Array to remove all Values before save
+            $this->data = [];
+         } else {
+            if ($this->hasOptions("sections")() === true) {
+               if (!empty($key)) {
+                  if (array_key_exists($section, $this->data)) {
+                     if (array_key_exists($key, $this->data[$section])) {
+                        unset($this->data[$section][$key]);
+                     } else {
+                        echo "Key Doesnt Exist";
+                     }
+                  } else {
+                     echo "cannot find Section";
                   }
                }
-               else
-               {
-                  echo "cannot find Section";
+            } else {
+               if (array_key_exists($section, $this->data)) {
+                  unset($this->data[$section]);
                }
             }
          }
-         else
-         {
-            if(array_key_exists($section,$this->data))
-            {
-               unset($this->data[$section]);
-            }
-         }
       }
-
    }
 
 
@@ -202,19 +156,26 @@ class FileWriter extends FileWriterCore
     * @description :  used to finalise and save the data to a file and write it.
     * @optional false;
     */
+
+   private function unsetData()
+   {
+      unset($this->data[$this->filename]);
+      $this->filename = "";
+      unset($this->options);
+   }
+
+
+   public function deleteData()
+   {
+      $this->unsetData();
+   }
+
    public function save()
    {
       // Validate OverWrite Rules
       $extension = $this->getExtension($this->filename);
-      $this->writeData($this->filename,$extension);
-      
-
-   //    // CLear all and reset to default
-      
-      unset($this->data[$this->filename]);
-      $this->filename = "";
-      unset($this->hasSections[$this->filename]);
+      $this->writeData($this->filename, $extension);
+      //    // CLear all and reset to default
+      $this->unsetData();
    }
-   
-   
 }
