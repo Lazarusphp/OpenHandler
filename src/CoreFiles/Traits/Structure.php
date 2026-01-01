@@ -7,7 +7,6 @@ use Exception;
 trait Structure
 {
     
-    
     protected $directory = "";
     protected $prefix = "";
 

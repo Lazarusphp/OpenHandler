@@ -1,10 +1,7 @@
 <?php
 
 namespace LazarusPhp\OpenHandler;
-
-use App\System\Core\Functions;
 use LazarusPhp\OpenHandler\CoreFiles\FileWriterCore;
-use LazarusPhp\OpenHandler\Interfaces\WriterInterface;
 use Exception;
 
 
