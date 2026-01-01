@@ -5,7 +5,7 @@
     "license": "MIT",
     "autoload": {
         "psr-4": {
-            "Lazarusphp\\Openhandler\\": "src/"
+            "LazarusPhp\\OpenHandler\\": "src/"
         }
     },
     "authors": [
