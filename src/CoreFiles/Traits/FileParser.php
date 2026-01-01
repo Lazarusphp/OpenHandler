@@ -102,7 +102,7 @@ trait FileParser
 
         // Check for ini
         if ($extension === "ini") {
-            $sections = $this->hasSections[$filename];
+            $sections = $this->hasOptions("sections") ?? false;
             $data =  (array) parse_ini_file($filename, $sections);
         }
 
@@ -124,7 +124,7 @@ trait FileParser
 
         // CHeck For env
         if ($extension === "env") {
-            $sections = $this->hasSections[$filename] = false;
+            $sections = $this->hasOptions("sections") ?? false;
             $data = (array) parse_ini_file($filename, $sections);
         }
 
@@ -167,7 +167,7 @@ trait FileParser
 
         $filename = $filename ?? $this->filename;
         foreach ($data as $sections => $k) {
-            if ($this->hasSections[$filename] === true) {
+            if ($this->hasOptions("sections") === true) {
                 if (!is_array($k)) {
                     continue;
                 }
@@ -222,7 +222,7 @@ trait FileParser
         // Write Ini File Here.
         foreach ($this->data as $sec => $k) {
 
-            if ($this->hasSections() === true) {
+            if ($this->hasOptions("sections") === true) {
                 $output .= "[$sec]" . PHP_EOL;
                 if (!is_array($k)) {
                     continue;
